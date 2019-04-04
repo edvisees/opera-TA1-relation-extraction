@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 import time
 
+import os
 from config import opt
 import models
 import dataset
@@ -19,7 +20,7 @@ from nltk.tokenize import word_tokenize
 import warnings
 warnings.filterwarnings("ignore")
 
-with open('word_dict.pkl') as f:
+with open(os.path.join(os.path.dirname(__file__), 'word_dict.pkl')) as f:
     word_dict = pkl.load(f)
 
 def collate_fn(batch):

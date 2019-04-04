@@ -4,7 +4,7 @@ import pickle
 import sys
 import os
 import numpy as np
-sys.path.insert(0, '/home/xiangk/LSTM-ER/pytorch_relation_extraction')
+sys.path.insert(0, './pytorch_relation_extraction')
 import main_mil
 from itertools import tee, izip
 import argparse
@@ -25,10 +25,10 @@ def run_document(fname, nlp, ontology, decisions, out_folder):
     sents, doc = read_ltf_offset(fname, nlp=nlp)
     out_doc = []
     out_rel = []
-    model_path = '/home/xiangk/LSTM-ER/pytorch_relation_extraction/checkpoints/model.pth'
+    model_path = './resources/xiang/LSTM-ER/pytorch_relation_extraction/checkpoints/model.pth'
     model = torch.load(model_path)
     id2rel = {}
-    with open('/home/xiangk/LSTM-ER/data/id2relation.txt') as f:
+    with open('./resources/xiang/LSTM-ER/data/id2relation.txt') as f:
         for line in f:
             line_split = line.strip().split()
             id2rel[int(line_split[0])] = line_split[1]
@@ -194,22 +194,22 @@ if __name__ == '__main__':
     ltf_data = args.ltf
     out_folder = args.out_folder
     #file_name = args.file_name
-    model_path = '/home/xiangk/LSTM-ER/pytorch_relation_extraction/checkpoints/model.pth'
+    model_path = './resources/xiang/LSTM-ER/pytorch_relation_extraction/checkpoints/model.pth'
     model = torch.load(model_path)
     id2rel = {}
-    with open('/home/xiangk/LSTM-ER/data/id2relation.txt') as f:
+    with open('./resources/xiang/LSTM-ER/data/id2relation.txt') as f:
         for line in f:
             line_split = line.strip().split()
             id2rel[int(line_split[0])] = line_split[1]
     #rel_dict = {}
-    with open('/home/xiangk/LSTM-ER/data/rel_constrain.pkl') as f:
+    with open('./resources/xiang/LSTM-ER/data/rel_constrain.pkl') as f:
         rel_dict = pkl.load(f)
-    with open('/home/xiangk/LSTM-ER/data/weighted_rel_dict.pkl') as f:
+    with open('./resources/xiang/LSTM-ER/data/weighted_rel_dict.pkl') as f:
         weighted_rel_dict = pkl.load(f)
     '''
     ontology = OntologyType()
     decisions = ontology.load_decision_tree()
-    with StanfordCoreNLP('/home/xiangk/LSTM-ER/xiangyang_code/stanford-corenlp-full-2017-06-09/') as nlp:
+    with StanfordCoreNLP('./resources/xiang/LSTM-ER/xiangyang_code/stanford-corenlp-full-2017-06-09/') as nlp:
         for file in os.listdir(ltf_data):
             if file.endswith('.xml'):
                 #if file + '.json' in os.listdir('test_data/'):
