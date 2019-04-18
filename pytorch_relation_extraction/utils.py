@@ -16,7 +16,7 @@ class Sen2Train(object):
         self.pos_dim = pos_dim
         self.pad = pad
         wordlist = []
-        wordlist.extend([word.strip('\n') for word in file('/home/xiangk/LSTM-ER/data/dict_comb.txt')])
+        wordlist.extend([word.strip('\n') for word in file('./resources/xiang/LSTM-ER/data/dict_comb.txt')])
         wordlist.append('BLANK')
         self.word2id = {j: i for i, j in enumerate(wordlist)}
 
