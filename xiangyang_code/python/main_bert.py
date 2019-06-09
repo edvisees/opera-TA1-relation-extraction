@@ -40,6 +40,7 @@ def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id):
     #print en1_en2
     if en1_en2 not in rel_dict:
         return len(rel_prob) - 1, 0, 0
+
     rels_candidate = rel_dict[en1_en2]
     mask = np.zeros_like(rel_prob)
     mask[-1] = 1.
@@ -49,7 +50,7 @@ def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id):
         mask[int(rc)] = 1.
     mask[0:3] = 0.
     if mask[rel2id['ldcOnt:Measurement.Size']] == 1 and en1_type == 'val':
-        return rel2id['ldcOnt:Measurement.Size'], rel_dict[en1_en2][2], 0.9
+        return rel2id['ldcOnt:Measurement.Size'], rel_dict[en1_en2][rel2id['ldcOnt:Measurement.Size']], 0.9
     # if mask[28] == 1 and en1_type =='NumericalValue':
     #     #print en1_en2
     #     return 28, rel_dict[en1_en2][28], 0.8 + np.random.uniform(0.101,0.180)
@@ -88,6 +89,27 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 }
                 for i in item["namedMentions"]
             ]
+            for i in item["nominalMentions"]:
+                entities_info.append(
+                    {'mention' : i['mention'],
+                    '@id' : i['@id'],
+                    'mention' : i['mention'],
+                    'char_begin' : i['char_begin'],
+                    'char_end' : i['char_end'],
+                    'type' : normalize_type(i['type']),
+                    }
+                )
+            for i in item["fillerMentions"]:
+                entities_info.append(
+                    {'mention' : i['mention'],
+                    '@id' : i['@id'],
+                    'mention' : i['mention'],
+                    'char_begin' : i['char_begin'],
+                    'char_end' : i['char_end'],
+                    'type' : normalize_type(i['type']),
+                    }
+                )
+
             #entities_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["namedMentions"]]
             #filler_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["fillerMentions"]]
             #entities_info.extend(filler_info)
@@ -108,7 +130,10 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 en2_id = entities[i + 1]['@id']
                 en1_type =  entities[i]['type']
                 en2_type =  entities[i + 1]['type']
-                print(en1_type, en2_type)
+                if en1 == en2:
+                    continue
+
+                #print(en1_type, en2_type)
                 real_span = [entities[i]['char_begin'], entities[i + 1]['char_end']]
                 # en1_begin, en1_end = entities[i]['char_begin'], entities[i]['char_end']
                 # en2_begin, en2_end = entities[i + 1]['char_begin'], entities[i + 1]['char_end']
@@ -136,7 +161,8 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 prob = 0.8
                 rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id)
                 #arg_types = 'dummy,dummy'
-                if id2rel[rel] == 'ldcOnt:Measurement.Size' and (entities[i+1][3][0] - entities[i][3][1] > 5):
+                print(entities)
+                if id2rel[rel] == 'ldcOnt:Measurement.Size' and (entities[i+1]['char_begin'] - entities[i]['char_end'] > len(en1)):
                     continue
                 if id2rel[rel] == 'n/a':
                     continue
@@ -231,6 +257,7 @@ if __name__ == '__main__':
     '''
     with open('./new_subrel_con.pkl', 'rb') as f:
         rel_dict = pkl.load(f)
+        #print(rel_dict)
     
     entity_type_conversion = {}
     weighted_rel_dict = None
