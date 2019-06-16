@@ -157,7 +157,11 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 #rel = main_mil.predict_no_label(model, sen, en1, en2)
                 inp_sent = '\t'.join(('n/a', en1, en2, mask_sents))
                 #print(inp_sent)
-                rel = mod.pred_nre([inp_sent])[0]
+
+                rel = mod.pred_nre([inp_sent])
+                if len(rel) == 0:
+                    continue
+                rel = rel[0]
                 prob = 0.8
                 rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id)
                 #arg_types = 'dummy,dummy'
