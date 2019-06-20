@@ -7,6 +7,7 @@ sys.path.append("..")
 import os
 import numpy as np
 import importlib
+import traceback
 mod = importlib.import_module("run_nre")
 
 #import main_mil
@@ -267,12 +268,16 @@ if __name__ == '__main__':
     weighted_rel_dict = None
     rel_dicts = [id2rel, rel2id]
     for file in os.listdir(ltf_data):
-    #file_name = os.path.split(file_name)[-1] 
-        rels = rels_extract(ltf_data, file, rel_dicts, rel_dict)
-        with open(os.path.join(out_folder, file), 'w') as f:
-            json.dump(rels, f, indent=4, sort_keys=True)
-            #print file_name
-            #exit()
+        #file_name = os.path.split(file_name)[-1] 
+        try:
+            rels = rels_extract(ltf_data, file, rel_dicts, rel_dict)
+            with open(os.path.join(out_folder, file), 'w') as f:
+                json.dump(rels, f, indent=4, sort_keys=True)
+                #print file_name
+                #exit()
+        except Exception as err:
+            sys.stderr.write("ERROR: Exception occured while processing " + file + " \n")
+            traceback.print_exc()
 
 
 

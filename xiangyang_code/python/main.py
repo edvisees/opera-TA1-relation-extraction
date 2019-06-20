@@ -11,6 +11,8 @@ import argparse
 from nltk.tokenize import word_tokenize
 import cPickle as pkl
 import time
+import traceback
+
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
     a, b = tee(iterable)
@@ -186,13 +188,16 @@ if __name__ == '__main__':
     '''
     print time.time() - cur_time
     for file in os.listdir(ltf_data):
-        print file
-
-        rels = rels_extract(ltf_data, file, model, id2rel)
-        print time.time() - cur_time
-        with open(os.path.join(out_folder, file), 'w') as f:
-            json.dump(rels, f, indent=4, sort_keys=True)
-            exit()
+        try:
+            print file
+            rels = rels_extract(ltf_data, file, model, id2rel)
+            print time.time() - cur_time
+            with open(os.path.join(out_folder, file), 'w') as f:
+                json.dump(rels, f, indent=4, sort_keys=True)
+                exit()
+        except Exception as err:
+            sys.stderr.write("ERROR: Exception occured while processing " + file + " \n")
+            traceback.print_exc()
 
 
 

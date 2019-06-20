@@ -13,6 +13,7 @@ import time
 import cPickle as pkl
 import math
 from numpy import size
+import traceback
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -222,10 +223,14 @@ if __name__ == '__main__':
     for file in os.listdir(ltf_data):
     #file_name = os.path.split(file_name)[-1] 
         rels = rels_extract(ltf_data, file, model, id2rel, weighted_rel_dict)
-        with open(os.path.join(out_folder, file), 'w') as f:
-            json.dump(rels, f, indent=4, sort_keys=True)
-            #print file_name
-            #exit()
+        try:
+            with open(os.path.join(out_folder, file), 'w') as f:
+                json.dump(rels, f, indent=4, sort_keys=True)
+                #print file_name
+                #exit()
+        except Exception as err:
+            sys.stderr.write("ERROR: Exception occured while processing " + file + " \n")
+            traceback.print_exc()
 
 
 
