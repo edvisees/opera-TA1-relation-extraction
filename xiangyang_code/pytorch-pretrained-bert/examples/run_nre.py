@@ -127,7 +127,7 @@ def pred_nre(sents):
     eval_examples = read_sent(sents)
     label_list = get_labels()
     eval_features = convert_examples_to_features(
-            eval_examples, label_list, 128, tokenizer, 30)
+            eval_examples, label_list, 300, tokenizer, 30)
     all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
     all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
     all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
@@ -150,11 +150,13 @@ def pred_nre(sents):
         input_ids, input_mask, segment_ids, lpos_ids, rpos_ids, input_lens, pcnn_mask, label_ids = batch
         with torch.no_grad():
             logits = model(input_ids, segment_ids, input_mask, lpos_ids, rpos_ids, input_lens,  pcnn_mask)
-        logits = logits.detach().cpu().numpy()
-        x = logits
-        e_x = np.exp(x - np.max(x))
-        probs = e_x / e_x.sum(axis=0)
-        pred_label = np.argmax(logits, axis=1)
+        logits = torch.nn.functional.softmax(logits, dim=1)
+        probs = logits.detach().cpu().numpy()
+
+        # x = logits
+        # e_x = np.exp(x - np.max(x))
+        # probs = e_x / e_x.sum(axis=0)
+        # pred_label = np.argmax(logits, axis=1)
         pred_list.extend(probs)
     assert len(pred_list) == len(eval_dataloader)
     return pred_list
@@ -273,6 +275,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         #label_ids += padding
         #label_mask += padding
         #print(len(input_ids))
+        if len(pcnn_mask) != max_seq_length:
+            print(len(pcnn_mask), max_seq_length, tokens)
         assert len(pcnn_mask) == max_seq_length
         assert len(pos_left) == max_seq_length
         assert len(pos_right) == max_seq_length
@@ -283,7 +287,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         #assert len(label_mask) == max_seq_length
 
         #label_id = label_map[example.label]
-        if ex_index < 5:
+        if ex_index < 0:
             logger.info("*** Example ***")
             logger.info("guid: %s" % (example.guid))
             logger.info("en1 : %s" % " ".join(
@@ -313,7 +317,7 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
                               label_id=label_id,
                               tokens_len=tokens_len,
                               pcnn_mask=pcnn_mask))
-    print(idx)
+    #print(idx)
     return features
 
 def accuracy(out, labels):

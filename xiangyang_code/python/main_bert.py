@@ -27,6 +27,7 @@ def pairwise(iterable):
 
 
 def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id):
+
     en1_type = en1_type.split('.')[0].split(':')[1].lower()
     en2_type = en2_type.split('.')[0].split(':')[1].lower()
     en1_en2 = ','.join((en1_type, en2_type))
@@ -59,8 +60,10 @@ def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id):
     #     return 21, rel_dict[en1_en2][21], 0.8 + np.random.uniform(0.101,0.180)
     mask_prob = rel_prob * mask
     rel = np.argmax(mask_prob)
+
     highest_prob = mask_prob[rel]
     if rel == len(rel_prob) - 1:
+        #sprint('xiangk')
         return len(rel_prob) - 1, 0, 0
     #print rels_candidate, rel, en1_type, en2_type, rel_prob
     #print rel
@@ -115,6 +118,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
             #filler_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["fillerMentions"]]
             #entities_info.extend(filler_info)
             entities = sorted(entities_info, key=lambda tupe: int(tupe['char_begin']))
+            #print(entities)
             for i in range(len(entities) - 1):
                 # en1 = entities[i][0]
                 # en2 = entities[i+1][0]
@@ -158,15 +162,34 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 #rel = main_mil.predict_no_label(model, sen, en1, en2)
                 inp_sent = '\t'.join(('n/a', en1, en2, mask_sents))
                 #print(inp_sent)
-
-                rel = mod.pred_nre([inp_sent])
-                if len(rel) == 0:
+                if 'GPE' in en1_type and 'PER' in en2_type  and entities[i+1]['char_begin'] - entities[i]['char_end'] < 5 :
+                    rel = [0.] * len(id2rel)
+                    rel[4] = 1.
+                elif 'GPE' in en1_type and 'TTL' in en2_type and i + 2 < len(entities) \
+                 and 'PER' in entities[i + 2]['type']:
+                    #print('xiangk')
+                    en2 = entities[i + 2]['mention']
+                    en2_id = entities[i + 2]['@id']
+                    en2_type =  entities[i + 2]['type']
+                    rel = [0.] * len(id2rel)
+                    rel[4] = 1.
+                    rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id)
+                    arg_types_list = arg_types.split(',')
+                    rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : id2rel[rel], 'score':prob, 
+                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                    rels.append(rel_json)
                     continue
-                rel = rel[0]
+                else:
+                    rel = mod.pred_nre([inp_sent])
+                    if len(rel) == 0:
+                        continue
+                    rel = rel[0]
+                
+                
                 prob = 0.8
                 rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id)
                 #arg_types = 'dummy,dummy'
-                print(entities)
+                #print(entities)
                 if id2rel[rel] == 'ldcOnt:Measurement.Size' and (entities[i+1]['char_begin'] - entities[i]['char_end'] > len(en1)):
                     continue
                 if id2rel[rel] == 'n/a':
@@ -174,7 +197,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 #print(arg_types, 0.8)
                 arg_types_list = arg_types.split(',')
                 rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : id2rel[rel], 'score':prob, 
-                            'span': real_span}
+                            'span': real_span, 'en1' : en1, 'en2' : en2}
                 rels.append(rel_json)
             #print(sen)
             acc_chars += len(sen)
