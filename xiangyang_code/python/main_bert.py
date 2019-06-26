@@ -117,7 +117,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
             #entities_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["namedMentions"]]
             #filler_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["fillerMentions"]]
             #entities_info.extend(filler_info)
-            entities = sorted(entities_info, key=lambda tupe: int(tupe['char_begin']))
+            entities = sorted(entities_info, key=lambda tupe: int(tupe['char_end']))
             #print(entities)
             for i in range(len(entities) - 1):
                 # en1 = entities[i][0]
