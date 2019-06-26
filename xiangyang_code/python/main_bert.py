@@ -26,7 +26,7 @@ def pairwise(iterable):
     return izip(a, b)
 
 
-def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id):
+def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id, sen):
 
     en1_type = en1_type.split('.')[0].split(':')[1].lower()
     en2_type = en2_type.split('.')[0].split(':')[1].lower()
@@ -52,16 +52,23 @@ def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id):
         mask[int(rc)] = 1.
     mask[0:3] = 0.
     if mask[rel2id['ldcOnt:Measurement.Size']] == 1 and en1_type == 'val':
-        return rel2id['ldcOnt:Measurement.Size'], rel_dict[en1_en2][rel2id['ldcOnt:Measurement.Size']], 0.9
+        return rel2id['ldcOnt:Measurement.Size'], rel_dict[en1_en2][rel2id['ldcOnt:Measurement.Size']], 0.8 + np.random.rand() * 0.1
     # if mask[28] == 1 and en1_type =='NumericalValue':
     #     #print en1_en2
     #     return 28, rel_dict[en1_en2][28], 0.8 + np.random.uniform(0.101,0.180)
     # if mask[21] == 1:
     #     return 21, rel_dict[en1_en2][21], 0.8 + np.random.uniform(0.101,0.180)
+    #if 
     mask_prob = rel_prob * mask
     rel = np.argmax(mask_prob)
-
     highest_prob = mask_prob[rel]
+
+    if mask[rel2id['ldcOnt:GeneralAffiliation.Sponsorship']] == 1 and rel == len(rel_prob) - 1:
+        if 'back' in sen or 'behind' in sen:
+            return rel2id['ldcOnt:GeneralAffiliation.Sponsorship'], rel_dict[en1_en2][rel2id['ldcOnt:GeneralAffiliation.Sponsorship']], 0.5 - np.random.rand() * 0.1
+        elif 'sponsor' in sen:
+            return rel2id['ldcOnt:GeneralAffiliation.Sponsorship'], rel_dict[en1_en2][rel2id['ldcOnt:GeneralAffiliation.Sponsorship']], 0.8 - np.random.rand() * 0.1
+
     if rel == len(rel_prob) - 1:
         #sprint('xiangk')
         return len(rel_prob) - 1, 0, 0
@@ -173,7 +180,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                     en2_type =  entities[i + 2]['type']
                     rel = [0.] * len(id2rel)
                     rel[4] = 1.
-                    rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id)
+                    rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id, sen[en1_end:en2_begin])
                     arg_types_list = arg_types.split(',')
                     rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : id2rel[rel], 'score':prob, 
                             'span': real_span, 'en1' : en1, 'en2' : en2}
@@ -187,7 +194,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 
                 
                 prob = 0.8
-                rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id)
+                rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id, sen[en1_end:en2_begin])
                 #arg_types = 'dummy,dummy'
                 #print(entities)
                 if id2rel[rel] == 'ldcOnt:Measurement.Size' and (entities[i+1]['char_begin'] - entities[i]['char_end'] > len(en1)):
