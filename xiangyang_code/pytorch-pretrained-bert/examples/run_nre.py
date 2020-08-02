@@ -275,8 +275,8 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
         #label_ids += padding
         #label_mask += padding
         #print(len(input_ids))
-        if len(pcnn_mask) != max_seq_length:
-            print(len(pcnn_mask), max_seq_length, tokens)
+        # if len(pcnn_mask) != max_seq_length:
+        #     print(len(pcnn_mask), max_seq_length, tokens)
         assert len(pcnn_mask) == max_seq_length
         assert len(pos_left) == max_seq_length
         assert len(pos_right) == max_seq_length

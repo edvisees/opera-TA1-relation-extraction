@@ -83,6 +83,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
     id2rel, rel2id = rel_dicts
     entity_file = os.path.join(ltf_data, file)
     out_rel = []
+    num_pairs = 0
     with open(entity_file) as f:
         entites_json = json.load(f)
         acc_chars = 0
@@ -126,6 +127,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
             #entities_info.extend(filler_info)
             entities = sorted(entities_info, key=lambda tupe: int(tupe['char_end']))
             #print(entities)
+            num_pairs += len(entities)
             for i in range(len(entities) - 1):
                 # en1 = entities[i][0]
                 # en2 = entities[i+1][0]
@@ -157,12 +159,12 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 en2_begin = sen.find(en2)
                 en1_end = en1_begin + len(en1)
                 en2_end = en2_begin + len(en2)
-                if sen[en1_begin : en1_end] != en1:
-                    print(acc_chars)
-                    print(en1_begin, en1_end)
-                    print(sen, sen[en1_begin : en1_end], en1, 'xk')
-                if sen[en2_begin : en2_end] != en2:
-                    print(sen, sen[en2_begin : en2_end], en2, 'xk')
+                # if sen[en1_begin : en1_end] != en1:
+                #     print(acc_chars)
+                #     print(en1_begin, en1_end)
+                #     print(sen, sen[en1_begin : en1_end], en1, 'xk')
+                # if sen[en2_begin : en2_end] != en2:
+                #     print(sen, sen[en2_begin : en2_end], en2, 'xk')
                 mask_sents = sen[:en1_begin] + ' [MASK] ' + sen[en1_end:en2_begin] + ' [MASK] '  + sen[en2_end:]
                 
                 #rel = 14
@@ -187,7 +189,10 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                     rels.append(rel_json)
                     continue
                 else:
-                    rel = mod.pred_nre([inp_sent])
+                    try:
+                        rel = mod.pred_nre([inp_sent])
+                    except:
+                        continue
                     if len(rel) == 0:
                         continue
                     rel = rel[0]
@@ -209,7 +214,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
             #print(sen)
             acc_chars += len(sen)
             out_rel.append({'docID' : file, 'inputSentence' : sen, 'rels' : rels })
-    return out_rel
+    return out_rel, num_pairs
 
 def normalize_type(t):
     if t == 'GeopoliticalEntity':
@@ -297,10 +302,11 @@ if __name__ == '__main__':
     entity_type_conversion = {}
     weighted_rel_dict = None
     rel_dicts = [id2rel, rel2id]
+    start_time = time.time()
     for file in os.listdir(ltf_data):
         #file_name = os.path.split(file_name)[-1] 
         try:
-            rels = rels_extract(ltf_data, file, rel_dicts, rel_dict)
+            rels, num_pairs = rels_extract(ltf_data, file, rel_dicts, rel_dict)
             with open(os.path.join(out_folder, file), 'w') as f:
                 json.dump(rels, f, indent=4, sort_keys=True)
                 #print file_name
@@ -308,6 +314,9 @@ if __name__ == '__main__':
         except Exception as err:
             sys.stderr.write("ERROR: Exception occured while processing " + file + " \n")
             traceback.print_exc()
+    end_time = time.time()
+    print(num_pairs/(end_time - start_time))
+    print('total elapsed time: {}'.format(end_time - start_time))
 
 
 
