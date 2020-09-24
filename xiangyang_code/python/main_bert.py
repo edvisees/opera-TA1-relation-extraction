@@ -79,7 +79,7 @@ def rel_postprocessing(rel_prob, en1_type, en2_type, rel_dict, rel2id, sen):
     #arg = ','.join((arg_split[0], arg_split[1]))
     return rel, rels_candidate[rel], 0.7 + np.random.uniform(0.05,0.102)
 
-def rels_extract(ltf_data, file, rel_dicts, rel_dict):
+def rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con):
     id2rel, rel2id = rel_dicts
     entity_file = os.path.join(ltf_data, file)
     out_rel = []
@@ -98,6 +98,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 'char_begin' : i['char_begin'],
                 'char_end' : i['char_end'],
                 'type' : normalize_type(i['type']),
+                "head_span_start": int(i["head_span"][0])
                 }
                 for i in item["namedMentions"]
             ]
@@ -109,6 +110,7 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                     'char_begin' : i['char_begin'],
                     'char_end' : i['char_end'],
                     'type' : normalize_type(i['type']),
+                    "head_span_start": int(i["head_span"][0])
                     }
                 )
             for i in item["fillerMentions"]:
@@ -119,13 +121,14 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                     'char_begin' : i['char_begin'],
                     'char_end' : i['char_end'],
                     'type' : normalize_type(i['type']),
+                    "head_span_start": int(i["head_span"][0])
                     }
                 )
 
             #entities_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["namedMentions"]]
             #filler_info = [(i['mention'], i["@id"], normalize_type(i['type']), i['head_span']) for i in item["fillerMentions"]]
             #entities_info.extend(filler_info)
-            entities = sorted(entities_info, key=lambda tupe: int(tupe['char_end']))
+            entities = sorted(entities_info, key=lambda tupe: int(tupe['head_span_start']))
             #print(entities)
             num_pairs += len(entities)
             for i in range(len(entities) - 1):
@@ -171,6 +174,41 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 #rel = main_mil.predict_no_label(model, sen, en1, en2)
                 inp_sent = '\t'.join(('n/a', en1, en2, mask_sents))
                 #print(inp_sent)
+                if 'VAL' in en1_type:
+                    en1_type = en1_type.split('.')[0].split(':')[1].lower()
+
+                    for j in range(i+1, min(i+5, len(entities))):
+                        en2 = entities[j]['mention']
+                        en2_begin = sen.find(en2)
+                        en2_end = en2_begin + len(en2)
+                        en2_id = entities[j]['@id']
+                        en2_type =  entities[j]['type']
+                        en2_type = en2_type.split('.')[0].split(':')[1].lower()
+                        en1_en2 = ','.join((en1_type, en2_type))
+                        if ('%' not in sen[en1_begin:en2_end]) and ('percent' not in sen[en1_begin:en2_end]) \
+                            and en1_en2 in new_con['ldcOnt:Measurement.Size.Count']:
+                            rel = 'ldcOnt:Measurement.Size.Count'
+                            real_span = [entities[i]['char_begin'], entities[j]['char_end']]
+                            args_type = new_con[rel][en1_en2].split(',')
+                            args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
+                            arg_types_list = args_type
+                            rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                            rels.append(rel_json) 
+                            break
+                        elif ('%' in sen[en1_begin:en2_end] or 'percent' in sen[en1_begin:en2_end]) \
+                            and en1_en2 in new_con['ldcOnt:Measurement.Size.Percentage']:
+                            rel = 'ldcOnt:Measurement.Size.Percentage'
+                            real_span = [entities[i]['char_begin'], entities[j]['char_end']]
+                            args_type = new_con[rel][en1_en2].split(',')
+                            args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
+                            arg_types_list = args_type
+                            rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                            rels.append(rel_json) 
+                            break
+                    continue
+
                 if 'GPE' in en1_type and 'PER' in en2_type  and entities[i+1]['char_begin'] - entities[i]['char_end'] < 5 :
                     rel = [0.] * len(id2rel)
                     rel[4] = 1.
@@ -202,13 +240,25 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict):
                 rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id, sen[en1_end:en2_begin])
                 #arg_types = 'dummy,dummy'
                 #print(entities)
-                if id2rel[rel] == 'ldcOnt:Measurement.Size' and (entities[i+1]['char_begin'] - entities[i]['char_end'] > len(en1)):
-                    continue
+                # if id2rel[rel] == 'ldcOnt:Measurement.Size' and (entities[i+1]['char_begin'] - entities[i]['char_end'] > len(en1)):
+                #     continue
                 if id2rel[rel] == 'n/a':
                     continue
+                rel = id2rel[rel]
+                if rel == 'ldcOnt:Measurement.Size':
+                    if '%' not in en1:
+                        rel = 'ldcOnt:Measurement.Size.Count'
+                    else:
+                        rel =  'ldcOnt:Measurement.Size.Percentage'
+                en1_type = en1_type.split('.')[0].split(':')[1].lower()
+                en2_type = en2_type.split('.')[0].split(':')[1].lower()
+                en1_en2 = ','.join((en1_type, en2_type))
+                args_type = new_con[rel][en1_en2].split(',')
+                args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
                 #print(arg_types, 0.8)
-                arg_types_list = arg_types.split(',')
-                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : id2rel[rel], 'score':prob, 
+                
+                arg_types_list = args_type
+                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':prob, 
                             'span': real_span, 'en1' : en1, 'en2' : en2}
                 rels.append(rel_json)
             #print(sen)
@@ -250,6 +300,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     ltf_data = args.ltf
     out_folder = args.out_folder
+    
+
     #file_name = args.file_name
     #model_path = '/home/xiangk/LSTM-ER/pytorch_relation_extraction/checkpoints/model.pth'
     #model = torch.load(model_path)
@@ -272,6 +324,36 @@ if __name__ == '__main__':
         'ldcOnt:Physical.LocatedNear', 'ldcOnt:Physical.OrganizationHeadquarters.OrganizationHeadquarters', 'ldcOnt:Physical.Resident.Resident',
         'ldcOnt:ResponsibilityBlame.AssignBlame.AssignBlame', 'ldcOnt:ResponsibilityBlame.ClaimResponsibility.ClaimResponsibility', 'n/a'
     ]
+    new_con = {}
+    with open('relations.tsv') as f:
+        next(f)
+        for line in f:
+            line = line.split('\t')
+            t, st, sst = line[1], line[3], line[5]
+            if sst == 'n/a':
+                ldc_type = 'ldcOnt:' + '.'.join((t, st))
+            else:
+                ldc_type = 'ldcOnt:' + '.'.join((t, st, sst))
+            # if ldc_type in subrels:
+            arg1_label = line[9]
+            arg2_label = line[12]
+            arg1_type = line[11]
+            arg2_type = line[14]
+            new_con[ldc_type] = {}
+            label12 = ','.join((arg1_label, arg2_label))
+            label21 = ','.join((arg2_label, arg1_label))
+            for t1 in arg1_type.strip().split(','):
+                t1 = t1.strip()
+                for t2 in arg2_type.strip().split(','):
+                    t2 = t2.strip()
+                    type12 = ','.join((t1, t2))
+                    type21 = ','.join((t2, t1))
+                    
+                    new_con[ldc_type][type12] = label12
+                    new_con[ldc_type][type21] = label21
+
+
+
     id2rel = {}
     rel2id = {}
     for i, r in enumerate(subrels):
@@ -306,7 +388,7 @@ if __name__ == '__main__':
     for file in os.listdir(ltf_data):
         #file_name = os.path.split(file_name)[-1] 
         try:
-            rels, num_pairs = rels_extract(ltf_data, file, rel_dicts, rel_dict)
+            rels, num_pairs = rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con)
             with open(os.path.join(out_folder, file), 'w') as f:
                 json.dump(rels, f, indent=4, sort_keys=True)
                 #print file_name
