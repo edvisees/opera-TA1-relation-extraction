@@ -253,6 +253,8 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con):
                 en1_type = en1_type.split('.')[0].split(':')[1].lower()
                 en2_type = en2_type.split('.')[0].split(':')[1].lower()
                 en1_en2 = ','.join((en1_type, en2_type))
+                if en1_en2 not in new_con[rel]:
+                    continue
                 args_type = new_con[rel][en1_en2].split(',')
                 args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
                 #print(arg_types, 0.8)
@@ -320,7 +322,7 @@ if __name__ == '__main__':
         'ldcOnt:Measurement.Size',
         'ldcOnt:OrganizationAffiliation.EmploymentMembership', 'ldcOnt:OrganizationAffiliation.Founder.Founder', 'ldcOnt:OrganizationAffiliation.Leadership',
         'ldcOnt:PartWhole.Subsidiary',
-        'ldcOnt:PersonalSocial.Role', 'ldcOnt:PersonalSocial.Unspecified',
+        'ldcOnt:PersonalSocial.Role', 'ldcOnt:PersonalSocial.Role',
         'ldcOnt:Physical.LocatedNear', 'ldcOnt:Physical.OrganizationHeadquarters.OrganizationHeadquarters', 'ldcOnt:Physical.Resident.Resident',
         'ldcOnt:ResponsibilityBlame.AssignBlame.AssignBlame', 'ldcOnt:ResponsibilityBlame.ClaimResponsibility.ClaimResponsibility', 'n/a'
     ]
