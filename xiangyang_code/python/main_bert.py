@@ -192,8 +192,24 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con):
                             args_type = new_con[rel][en1_en2].split(',')
                             args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
                             arg_types_list = args_type
-                            rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
-                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                            k = i
+                            j = i
+                            time_id = None
+                            while k >= 0 or j < len(entities):
+                                if k >=0 and entities[k]['type'] == 'aida:date_time':
+                                    time_id = entities[k]['@id']
+                                    break
+                                if j < len(entities) and entities[j]['type'] == 'aida:date_time':
+                                    time_id = entities[j]['@id']
+                                    break
+                                k -= 1
+                                j += 1
+                            if time_id:
+                                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                                            'span': real_span, 'en1' : en1, 'en2' : en2, 'aida:time': time_id}
+                            else:
+                                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                                            'span': real_span, 'en1' : en1, 'en2' : en2}
                             rels.append(rel_json) 
                             break
                         elif ('%' in sen[en1_begin:en2_end] or 'percent' in sen[en1_begin:en2_end]) \
@@ -203,8 +219,26 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con):
                             args_type = new_con[rel][en1_en2].split(',')
                             args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
                             arg_types_list = args_type
-                            rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
-                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                            k = i
+                            j = i
+                            time_id = None
+                            while k >= 0 or j < len(entities):
+                                if k >=0 and entities[k]['type'] == 'aida:date_time':
+                                    time_id = entities[k]['@id']
+                                    break
+                                if j < len(entities) and entities[j]['type'] == 'aida:date_time':
+                                    time_id = entities[j]['@id']
+                                    break
+                                k -= 1
+                                j += 1
+                            if time_id:
+                                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                                            'span': real_span, 'en1' : en1, 'en2' : en2, 'aida:time': time_id}
+                            else:
+                                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                            # rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':0.9, 
+                            # 'span': real_span, 'en1' : en1, 'en2' : en2}
                             rels.append(rel_json) 
                             break
                     continue
@@ -221,6 +255,11 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con):
                     rel = [0.] * len(id2rel)
                     rel[4] = 1.
                     rel, arg_types, prob = rel_postprocessing(rel, en1_type, en2_type, rel_dict, rel2id, sen[en1_end:en2_begin])
+                    # args_type = new_con[id2rel[rel]][en1_en2].split(',')
+                    # args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
+                    #print(arg_types, 0.8)
+                
+                    # arg_types_list = args_type
                     arg_types_list = arg_types.split(',')
                     rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : id2rel[rel], 'score':prob, 
                             'span': real_span, 'en1' : en1, 'en2' : en2}
@@ -255,12 +294,20 @@ def rels_extract(ltf_data, file, rel_dicts, rel_dict, new_con):
                 en1_en2 = ','.join((en1_type, en2_type))
                 if en1_en2 not in new_con[rel]:
                     continue
+                if rel == 'ldcOnt:PartWhole.Subsidiary' and en1_en2 in new_con['ldcOnt:PartWhole.Subsidiary.NationalityCitizen']:
+                    rel = 'ldcOnt:PartWhole.Subsidiary.NationalityCitizen'
+                if rel == 'ldcOnt:OrganizationAffiliation.EmploymentMembership' and en1_en2 in new_con['ldcOnt:OrganizationAffiliation.EmploymentMembership.Employment']:
+                    rel = 'ldcOnt:OrganizationAffiliation.EmploymentMembership.Employment'
                 args_type = new_con[rel][en1_en2].split(',')
                 args_type = ['_'.join((rel, args_type[0])), '_'.join((rel, args_type[1]))]
                 #print(arg_types, 0.8)
                 
                 arg_types_list = args_type
-                rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':prob, 
+                if arg_types_list[0] == arg_types_list[1]:
+                    rel_json = { arg_types_list[0] : [en1_id, en2_id], 'rel' : rel, 'score':prob, 
+                            'span': real_span, 'en1' : en1, 'en2' : en2}
+                else:
+                    rel_json = { arg_types_list[0] : en1_id, arg_types_list[1] : en2_id, 'rel' : rel, 'score':prob, 
                             'span': real_span, 'en1' : en1, 'en2' : en2}
                 rels.append(rel_json)
             #print(sen)
